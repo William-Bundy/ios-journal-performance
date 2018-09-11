@@ -93,9 +93,11 @@ class EntryController {
     func fetchEntriesFromServer(completion: @escaping (([EntryRepresentation]?, Error?) -> Void) = { _,_ in }) {
         
         let requestURL = baseURL.appendingPathExtension("json")
-        
+
+
+		NSLog("Fetching from server...")
         URLSession.shared.dataTask(with: requestURL) { (data, _, error) in
-            
+            NSLog("Got response")
             if let error = error {
                 NSLog("Error fetching entries from server: \(error)")
                 completion(nil, error)
@@ -109,6 +111,7 @@ class EntryController {
             }
 
             do {
+				NSLog("Decoding entries...")
                 let entryReps = try JSONDecoder().decode([String: EntryRepresentation].self, from: data).map({$0.value})
                 completion(entryReps, nil)
             } catch {

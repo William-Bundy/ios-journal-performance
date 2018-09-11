@@ -17,16 +17,19 @@ class CoreDataImporter {
     func sync(entries: [EntryRepresentation], completion: @escaping (Error?) -> Void = { _ in }) {
         
         self.context.perform {
+			let allEntries = self.fetchAllEntries(self.context)
+			NSLog("Started syncing \(entries.count) => \(allEntries.count)")
             for entryRep in entries {
                 guard let identifier = entryRep.identifier else { continue }
                 
-                let entry = self.fetchSingleEntryFromPersistentStore(with: identifier, in: self.context)
+				let entry = allEntries[identifier]
                 if let entry = entry, entry != entryRep {
                     self.update(entry: entry, with: entryRep)
                 } else if entry == nil {
                     _ = Entry(entryRepresentation: entryRep, context: self.context)
                 }
             }
+			NSLog("Synced \(entries.count) => \(allEntries.count)")
             completion(nil)
         }
     }
@@ -38,9 +41,10 @@ class CoreDataImporter {
         entry.timestamp = entryRep.timestamp
         entry.identifier = entryRep.identifier
     }
-    
+
+	// /me makes a mike acton face
     private func fetchSingleEntryFromPersistentStore(with identifier: String?, in context: NSManagedObjectContext) -> Entry? {
-        
+
         guard let identifier = identifier else { return nil }
         
         let fetchRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
@@ -54,6 +58,23 @@ class CoreDataImporter {
         }
         return result
     }
-    
+
+	private func fetchAllEntries(_ context: NSManagedObjectContext) -> [String:Entry] {
+
+		NSLog("Starting to fetch all entries...")
+		let fetchRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
+
+		var result:[String:Entry] = [:]
+		do {
+			let results = try context.fetch(fetchRequest)
+			for entry in results {
+				guard let id = entry.identifier else { continue }
+				result[id] = entry
+			}
+		} catch {
+			NSLog("Error fetching all entries: \(error)")
+		}
+		return result
+	}
     let context: NSManagedObjectContext
 }
